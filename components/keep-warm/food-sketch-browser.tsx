@@ -28,7 +28,7 @@ export function FoodSketchBrowser({
   const [debouncedQuery, setDebouncedQuery] = useState("")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [page, setPage] = useState(0)
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>()
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const handleSearch = (value: string) => {
     setSearchQuery(value)
