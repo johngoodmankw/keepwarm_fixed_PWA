@@ -1,6 +1,5 @@
-// KeepWarm Epaper Manifests - Menu Items Library
-// Allergen IDs must match allergens-library.ts exactly
-// Dietary IDs must match dietary-library.ts exactly
+// KeepWarm — Menu Library
+// Source: KeepWarm Epaper Manifests - Menu Items (5).csv
 
 export interface MenuItem {
   id: string
@@ -10,9 +9,13 @@ export interface MenuItem {
   dietary: string[]
   category: string
   sketchType: "chicken" | "steak" | "fish" | "vegetable" | "pasta" | "default"
+  sketch: string
+  targetTemp: string
 }
 
 export const menuLibrary: MenuItem[] = [
+
+  // ── Custom (always first) ──────────────────────────────────────────────────
   {
     id: "custom",
     name: "Custom",
@@ -20,153 +23,344 @@ export const menuLibrary: MenuItem[] = [
     allergens: [],
     dietary: [],
     category: "custom",
-    sketchType: "default"
+    sketchType: "default",
+    sketch: "",
+    targetTemp: "",
   },
+
+  // ── Breakfast ──────────────────────────────────────────────────────────────
   {
-    id: "chicken-parm",
-    name: "Chicken Parmesan",
-    description: "Crispy breaded chicken breast, marinara, melted mozzarella, fresh basil",
-    allergens: ["gluten", "dairy", "eggs"],
+    id: "pork-sausage-links",
+    name: "Pork Sausage Links",
+    description: "Seasoned pork sausage links, griddled to order",
+    allergens: [],
     dietary: [],
-    category: "poultry",
-    sketchType: "chicken"
+    category: "breakfast",
+    sketchType: "steak",
+    sketch: "sausage",
+    targetTemp: "160°F",
   },
   {
-    id: "grilled-salmon",
-    name: "Grilled Salmon",
-    description: "Atlantic salmon, lemon herb butter, seasonal vegetables",
-    allergens: ["fish", "dairy"],
-    dietary: ["gluten-free"],
-    category: "seafood",
-    sketchType: "fish"
+    id: "turkey-bacon",
+    name: "Turkey Bacon",
+    description: "Lean turkey bacon, crispy and golden",
+    allergens: [],
+    dietary: [],
+    category: "breakfast",
+    sketchType: "steak",
+    sketch: "bacon-strips",
+    targetTemp: "165°F",
   },
   {
-    id: "ribeye-steak",
-    name: "Ribeye Steak",
-    description: "Prime ribeye, compound butter, roasted garlic, rosemary",
+    id: "corned-beef-hash",
+    name: "Corned Beef Hash",
+    description: "House-made corned beef hash with diced potatoes and onions",
+    allergens: [],
+    dietary: [],
+    category: "breakfast",
+    sketchType: "steak",
+    sketch: "hash-bowl",
+    targetTemp: "165°F",
+  },
+  {
+    id: "scrambled-eggs",
+    name: "Scrambled Eggs",
+    description: "Soft scrambled eggs, fresh chives, sea salt",
+    allergens: ["eggs", "dairy"],
+    dietary: [],
+    category: "breakfast",
+    sketchType: "default",
+    sketch: "eggs-scrambled",
+    targetTemp: "165°F",
+  },
+  {
+    id: "eggs-benedict",
+    name: "Eggs Benedict",
+    description: "Poached eggs, Canadian bacon, toasted English muffin, hollandaise",
+    allergens: ["eggs", "dairy", "gluten"],
+    dietary: [],
+    category: "breakfast",
+    sketchType: "default",
+    sketch: "benedict",
+    targetTemp: "165°F",
+  },
+  {
+    id: "vegetable-frittata",
+    name: "Vegetable Frittata",
+    description: "Oven-baked frittata with seasonal vegetables, herbs, and cheese",
+    allergens: ["eggs", "dairy"],
+    dietary: ["vegetarian"],
+    category: "breakfast",
+    sketchType: "vegetable",
+    sketch: "frittata-slice",
+    targetTemp: "165°F",
+  },
+  {
+    id: "biscuits-gravy",
+    name: "Biscuits & Gravy",
+    description: "Buttermilk biscuits, house-made sausage cream gravy",
+    allergens: ["dairy", "gluten"],
+    dietary: [],
+    category: "breakfast",
+    sketchType: "default",
+    sketch: "biscuits",
+    targetTemp: "165°F",
+  },
+  {
+    id: "brioche-french-toast",
+    name: "Brioche French Toast",
+    description: "Thick-cut brioche, vanilla custard, maple syrup, powdered sugar",
+    allergens: ["eggs", "dairy", "gluten"],
+    dietary: [],
+    category: "breakfast",
+    sketchType: "default",
+    sketch: "french-toast",
+    targetTemp: "150°F",
+  },
+
+  // ── Lunch ──────────────────────────────────────────────────────────────────
+  {
+    id: "chicken-piccata",
+    name: "Chicken Piccata",
+    description: "Pan-seared chicken breast, lemon-caper butter sauce, angel hair pasta",
+    allergens: ["dairy", "gluten"],
+    dietary: [],
+    category: "lunch",
+    sketchType: "chicken",
+    sketch: "lemon-chicken",
+    targetTemp: "165°F",
+  },
+  {
+    id: "beef-sliders",
+    name: "Beef Sliders",
+    description: "Mini beef patties, cheddar, house pickles, brioche buns",
+    allergens: ["gluten"],
+    dietary: [],
+    category: "lunch",
+    sketchType: "steak",
+    sketch: "slider-trio",
+    targetTemp: "160°F",
+  },
+  {
+    id: "meatballs-in-marinara",
+    name: "Meatballs in Marinara",
+    description: "Hand-rolled beef and pork meatballs, San Marzano tomato sauce",
+    allergens: ["gluten", "dairy"],
+    dietary: [],
+    category: "lunch",
+    sketchType: "default",
+    sketch: "meatballs",
+    targetTemp: "165°F",
+  },
+  {
+    id: "fried-cod-filets",
+    name: "Fried Cod Filets",
+    description: "Beer-battered Atlantic cod, tartar sauce, lemon wedge",
+    allergens: ["fish", "gluten"],
+    dietary: [],
+    category: "lunch",
+    sketchType: "fish",
+    sketch: "fried-fish",
+    targetTemp: "145°F",
+  },
+  {
+    id: "popcorn-shrimp",
+    name: "Popcorn Shrimp",
+    description: "Crispy bite-sized shrimp, house seasoning, cocktail sauce",
+    allergens: ["crustaceans", "gluten"],
+    dietary: [],
+    category: "lunch",
+    sketchType: "fish",
+    sketch: "fried-shrimp",
+    targetTemp: "145°F",
+  },
+  {
+    id: "macaroni-cheese",
+    name: "Macaroni & Cheese",
+    description: "Cavatappi pasta, four-cheese béchamel, toasted breadcrumb crust",
+    allergens: ["dairy", "gluten"],
+    dietary: ["vegetarian"],
+    category: "lunch",
+    sketchType: "pasta",
+    sketch: "mac-cheese-bowl",
+    targetTemp: "165°F",
+  },
+  {
+    id: "penne-alla-vodka",
+    name: "Penne Alla Vodka",
+    description: "Penne rigate, pink vodka cream sauce, pancetta, fresh basil",
+    allergens: ["dairy", "gluten"],
+    dietary: [],
+    category: "lunch",
+    sketchType: "pasta",
+    sketch: "pasta-penne",
+    targetTemp: "165°F",
+  },
+  {
+    id: "garlic-mashed-spuds",
+    name: "Garlic Mashed Spuds",
+    description: "Yukon Gold potatoes, roasted garlic, butter, cream",
     allergens: ["dairy"],
-    dietary: ["gluten-free"],
-    category: "beef",
-    sketchType: "steak"
+    dietary: ["vegetarian", "gluten-free"],
+    category: "lunch",
+    sketchType: "default",
+    sketch: "mashed-potatoes",
+    targetTemp: "155°F",
   },
   {
-    id: "herb-chicken",
-    name: "Herb-Crusted Chicken",
-    description: "Free-range chicken, fresh herbs, garlic, lemon zest",
+    id: "tomato-basil-soup",
+    name: "Tomato Basil Soup",
+    description: "Roasted Roma tomatoes, fresh basil, cream",
     allergens: ["dairy"],
-    dietary: ["gluten-free"],
-    category: "poultry",
-    sketchType: "chicken"
+    dietary: ["vegetarian", "gluten-free"],
+    category: "lunch",
+    sketchType: "default",
+    sketch: "soup-bowl",
+    targetTemp: "170°F",
   },
+
+  // ── Dinner ─────────────────────────────────────────────────────────────────
   {
     id: "braised-short-ribs",
     name: "Braised Short Ribs",
-    description: "Slow-braised beef short ribs, red wine reduction, root vegetables",
+    description: "48-hour braised beef short ribs, red wine reduction, creamy polenta",
+    allergens: [],
+    dietary: [],
+    category: "dinner",
+    sketchType: "steak",
+    sketch: "short-rib",
+    targetTemp: "165°F",
+  },
+  {
+    id: "pan-seared-salmon",
+    name: "Pan-Seared Salmon",
+    description: "Atlantic salmon fillet, lemon herb butter, asparagus, wild rice",
+    allergens: ["fish"],
+    dietary: ["gluten-free"],
+    category: "dinner",
+    sketchType: "fish",
+    sketch: "salmon-fillet",
+    targetTemp: "145°F",
+  },
+  {
+    id: "shrimp-scampi",
+    name: "Shrimp Scampi",
+    description: "Gulf shrimp, white wine, garlic butter, linguine, parsley",
+    allergens: ["crustaceans", "dairy"],
+    dietary: [],
+    category: "dinner",
+    sketchType: "fish",
+    sketch: "shrimp-scampi",
+    targetTemp: "145°F",
+  },
+  {
+    id: "steamed-mussels",
+    name: "Steamed Mussels",
+    description: "PEI mussels, white wine broth, shallots, fresh herbs, crusty bread",
+    allergens: ["mollusks"],
+    dietary: [],
+    category: "dinner",
+    sketchType: "fish",
+    sketch: "mussels-bowl",
+    targetTemp: "145°F",
+  },
+  {
+    id: "vegetable-lasagna",
+    name: "Vegetable Lasagna",
+    description: "Layered pasta, roasted vegetables, ricotta, béchamel, marinara",
+    allergens: ["dairy", "gluten"],
+    dietary: ["vegetarian"],
+    category: "dinner",
+    sketchType: "vegetable",
+    sketch: "lasagna-slice",
+    targetTemp: "165°F",
+  },
+  {
+    id: "mushroom-risotto",
+    name: "Mushroom Risotto",
+    description: "Arborio rice, wild mushrooms, parmesan, white wine, truffle oil",
+    allergens: ["dairy"],
+    dietary: ["vegetarian", "gluten-free"],
+    category: "dinner",
+    sketchType: "pasta",
+    sketch: "risotto-bowl",
+    targetTemp: "155°F",
+  },
+
+  // ── Dessert ────────────────────────────────────────────────────────────────
+  {
+    id: "apple-cobbler",
+    name: "Apple Cobbler",
+    description: "Cinnamon-spiced apples, buttery biscuit topping, vanilla ice cream",
     allergens: ["gluten"],
     dietary: [],
-    category: "beef",
-    sketchType: "steak"
+    category: "dessert",
+    sketchType: "default",
+    sketch: "apple-cobbler",
+    targetTemp: "145°F",
   },
   {
-    id: "pan-seared-duck",
-    name: "Pan-Seared Duck",
-    description: "Duck breast, cherry gastrique, wild rice, haricots verts",
-    allergens: [],
-    dietary: ["gluten-free"],
-    category: "poultry",
-    sketchType: "chicken"
-  },
-  {
-    id: "roasted-vegetables",
-    name: "Roasted Vegetables",
-    description: "Seasonal medley, balsamic glaze, fresh herbs, olive oil",
-    allergens: [],
-    dietary: ["vegan", "gluten-free", "vegetarian"],
-    category: "vegetarian",
-    sketchType: "vegetable"
-  },
-  {
-    id: "truffle-risotto",
-    name: "Truffle Risotto",
-    description: "Arborio rice, black truffle, parmesan, white wine",
-    allergens: ["dairy"],
-    dietary: ["vegetarian"],
-    category: "pasta",
-    sketchType: "pasta"
-  },
-  {
-    id: "beef-wellington",
-    name: "Beef Wellington",
-    description: "Filet mignon, mushroom duxelles, puff pastry, red wine jus",
-    allergens: ["gluten", "dairy", "eggs"],
+    id: "chocolate-bread-pud",
+    name: "Chocolate Bread Pud",
+    description: "Brioche bread pudding, dark chocolate custard, bourbon caramel",
+    allergens: ["dairy", "eggs", "gluten"],
     dietary: [],
-    category: "beef",
-    sketchType: "steak"
+    category: "dessert",
+    sketchType: "default",
+    sketch: "bread-pudding",
+    targetTemp: "155°F",
   },
   {
-    id: "lobster-thermidor",
-    name: "Lobster Thermidor",
-    description: "Maine lobster, cognac cream sauce, gruyère, duchess potatoes",
-    allergens: ["crustaceans", "dairy", "eggs"],
-    dietary: ["gluten-free"],
-    category: "seafood",
-    sketchType: "fish"
+    id: "sticky-toffee-pud",
+    name: "Sticky Toffee Pud",
+    description: "Date sponge cake, warm toffee sauce, clotted cream",
+    allergens: ["dairy", "eggs", "gluten"],
+    dietary: [],
+    category: "dessert",
+    sketchType: "default",
+    sketch: "toffee-cake",
+    targetTemp: "155°F",
   },
   {
-    id: "caesar-salad",
-    name: "Caesar Salad",
-    description: "Romaine hearts, house-made dressing, parmesan, croutons",
-    allergens: ["dairy", "gluten", "eggs", "fish"],
-    dietary: ["vegetarian"],
-    category: "salad",
-    sketchType: "vegetable"
+    id: "molten-lava-cake",
+    name: "Molten Lava Cake",
+    description: "Warm chocolate cake, liquid center, vanilla bean ice cream",
+    allergens: ["dairy", "eggs", "gluten"],
+    dietary: [],
+    category: "dessert",
+    sketchType: "default",
+    sketch: "lava-cake",
+    targetTemp: "150°F",
   },
   {
-    id: "mushroom-pasta",
-    name: "Wild Mushroom Pasta",
-    description: "Pappardelle, forest mushrooms, truffle cream, pecorino",
-    allergens: ["gluten", "dairy"],
-    dietary: ["vegetarian"],
-    category: "pasta",
-    sketchType: "pasta"
+    id: "cinnamon-churros",
+    name: "Cinnamon Churros",
+    description: "Crispy fried dough, cinnamon sugar, warm chocolate dipping sauce",
+    allergens: ["gluten"],
+    dietary: [],
+    category: "dessert",
+    sketchType: "default",
+    sketch: "churros",
+    targetTemp: "140°F",
   },
-  {
-    id: "sesame-tuna",
-    name: "Sesame-Crusted Tuna",
-    description: "Ahi tuna, sesame crust, wasabi aioli, pickled ginger",
-    allergens: ["fish", "sesame", "soy", "eggs"],
-    dietary: ["gluten-free"],
-    category: "seafood",
-    sketchType: "fish"
-  },
-  {
-    id: "lamb-chops",
-    name: "Lamb Chops",
-    description: "New Zealand lamb, mint pesto, roasted fingerlings",
-    allergens: ["peanuts"],
-    dietary: ["gluten-free"],
-    category: "lamb",
-    sketchType: "steak"
-  }
 ]
 
-export function searchMenuItems(query: string): MenuItem[] {
-  const lowerQuery = query.toLowerCase()
+// ── Search ───────────────────────────────────────────────────────────────────
 
-  const customItem = menuLibrary.find(item => item.id === "custom")
+export function searchMenuItems(query: string): MenuItem[] {
+  const customItem = menuLibrary.find(item => item.id === "custom")!
   const otherItems = menuLibrary.filter(item => item.id !== "custom")
 
-  if (!query.trim()) {
-    return customItem ? [customItem, ...otherItems] : otherItems
-  }
+  if (!query.trim()) return [customItem, ...otherItems]
 
+  const q = query.toLowerCase()
   const filtered = otherItems.filter(item =>
-    item.name.toLowerCase().includes(lowerQuery) ||
-    item.description.toLowerCase().includes(lowerQuery) ||
-    item.category.toLowerCase().includes(lowerQuery)
+    item.name.toLowerCase().includes(q) ||
+    item.description.toLowerCase().includes(q) ||
+    item.category.toLowerCase().includes(q)
   )
 
-  return customItem ? [customItem, ...filtered] : filtered
+  return [customItem, ...filtered]
 }
 
 export function getMenuItemById(id: string): MenuItem | undefined {
