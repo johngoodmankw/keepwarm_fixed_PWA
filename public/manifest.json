@@ -1,0 +1,15 @@
+{
+  "name": "KeepWarm",
+  "short_name": "KeepWarm",
+  "description": "Premium hardware control for food warming displays",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F5F2ED",
+  "theme_color": "#1C1C1C",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/icon.svg",             "sizes": "any",     "type": "image/svg+xml", "purpose": "any maskable" },
+    { "src": "/apple-icon.png",       "sizes": "180x180", "type": "image/png" },
+    { "src": "/icon-light-32x32.png", "sizes": "32x32",   "type": "image/png" }
+  ]
+}
