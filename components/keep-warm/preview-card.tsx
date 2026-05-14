@@ -10,8 +10,7 @@ interface PreviewCardProps {
   allergens: string[]
   dietary: string[]
   logoUrl?: string | null
-  selectedSketch?: string | null
-  sketchUrl?: string | null
+  sketchSvg?: string | null
   targetTemp?: string | null
 }
 
@@ -23,7 +22,6 @@ const EPAPER_COLORS = {
   bronze: "#CD7F32",
 }
 
-// Hoisted outside component — stable object reference, no re-allocation on every render
 const NOISE_STYLE: React.CSSProperties = {
   backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
 }
@@ -34,12 +32,11 @@ export function PreviewCard({
   allergens,
   dietary,
   logoUrl = null,
-  selectedSketch = null,
-  sketchUrl = null,
+  sketchSvg = null,
   targetTemp = null,
 }: PreviewCardProps) {
   const allIconIds = [...allergens, ...dietary].slice(0, 5)
-  const hasSketch = Boolean(sketchUrl)
+  const hasSketch = Boolean(sketchSvg)
 
   const getIconData = (id: string) => {
     const a = allergensLibrary.find(a => a.id === id)
@@ -59,12 +56,11 @@ export function PreviewCard({
           className="relative w-full h-full rounded-xl overflow-hidden"
           style={{ backgroundColor: EPAPER_COLORS.white, boxShadow: "inset 0 2px 8px rgba(0,0,0,0.04)" }}
         >
-          {/* Noise texture — stable style reference, no re-paint on parent re-render */}
           <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={NOISE_STYLE} />
 
           <div className="relative h-full flex flex-col p-3">
 
-            {/* ── Zone A — Hotel Logo (top 15%) ─────────────────────────────── */}
+            {/* Zone A — Hotel Logo */}
             <div className="h-[15%] flex items-center justify-center border-b border-[#1C1C1C]/10 pb-2 shrink-0">
               {logoUrl ? (
                 <img
@@ -83,27 +79,21 @@ export function PreviewCard({
               )}
             </div>
 
-            {/* ── Zone B — Illustration + Dish Info (middle 55%) ────────────── */}
-            {/*
-              Conditional layout:
-              • Sketch present  → image on top, text below, everything centred
-              • No sketch       → image container removed; text centres itself
-                                  vertically in the full Zone B height
-            */}
-            <div className="h-[55%] flex flex-col items-center justify-center text-center px-2">
+            {/* Zone B — Sketch + Dish Name + Description */}
+            <div className="flex-1 min-h-0 flex flex-col items-center justify-center text-center px-2 overflow-hidden gap-1">
               {hasSketch && (
-                <img
-                  src={sketchUrl!}
-                  alt={selectedSketch ?? "food sketch"}
-                  className="w-20 h-20 mb-2 object-contain shrink-0"
+                <div
+                  className="shrink-0 overflow-hidden"
+                  style={{ width: 80, height: 80 }}
+                  dangerouslySetInnerHTML={{ __html: sketchSvg! }}
                 />
               )}
 
               <h2
-                className="text-xl font-black tracking-wide text-balance uppercase leading-tight"
+                className="text-2xl font-bold uppercase leading-tight shrink-0"
                 style={{
                   fontFamily: "Georgia, 'Times New Roman', serif",
-                  letterSpacing: "0.08em",
+                  letterSpacing: "0.05em",
                   color: EPAPER_COLORS.black,
                 }}
               >
@@ -112,41 +102,30 @@ export function PreviewCard({
 
               {description && (
                 <p
-                  className="mt-1 text-[10px] leading-relaxed max-w-[260px] text-pretty"
-                  style={{ color: EPAPER_COLORS.black, opacity: 0.6 }}
+                  className="text-[9px] leading-relaxed max-w-[240px] line-clamp-2 shrink-0"
+                  style={{ color: EPAPER_COLORS.black, opacity: 0.55 }}
                 >
                   {description}
                 </p>
               )}
-
-              {targetTemp && (
-                <div
-                  className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full"
-                  style={{ backgroundColor: EPAPER_COLORS.yellow, border: `1.5px solid ${EPAPER_COLORS.black}` }}
-                >
-                  <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: EPAPER_COLORS.black }}>
-                    Hold {targetTemp}
-                  </span>
-                </div>
-              )}
             </div>
 
-            {/* ── Zone C — Allergen / Dietary Icons (bottom 30%) ────────────── */}
-            <div className="h-[30%] border-t border-[#1C1C1C]/10 pt-2 shrink-0">
-              <div className="flex items-start justify-center gap-3 flex-wrap">
+            {/* Zone C — Allergens + Temperature */}
+            <div className="border-t border-[#1C1C1C]/10 pt-2 shrink-0 flex flex-col items-center gap-1.5 pb-1">
+              <div className="flex items-center justify-center gap-2 flex-wrap">
                 {allIconIds.map((iconId, index) => {
                   const iconData = getIconData(iconId)
                   if (!iconData) return null
                   return (
                     <div key={`icon-${index}`} className="flex flex-col items-center gap-0.5">
                       <div
-                        className="w-8 h-8 rounded-full flex items-center justify-center"
-                        style={{ backgroundColor: EPAPER_COLORS.yellow, border: `2.5px solid ${EPAPER_COLORS.black}` }}
+                        className="w-7 h-7 rounded-full flex items-center justify-center"
+                        style={{ backgroundColor: EPAPER_COLORS.yellow, border: `2px solid ${EPAPER_COLORS.black}` }}
                         title={iconData.name}
                       >
-                        <img src={iconData.iconUrl} alt={iconData.name} className="w-4 h-4 object-contain" />
+                        <img src={iconData.iconUrl} alt={iconData.name} className="w-3.5 h-3.5 object-contain" />
                       </div>
-                      <span className="text-[8px] font-bold uppercase" style={{ color: EPAPER_COLORS.black }}>
+                      <span className="text-[7px] font-bold uppercase" style={{ color: EPAPER_COLORS.black }}>
                         {iconData.abbr}
                       </span>
                     </div>
@@ -157,16 +136,29 @@ export function PreviewCard({
                   Array.from({ length: 5 - allIconIds.length }).map((_, index) => (
                     <div key={`empty-${index}`} className="flex flex-col items-center gap-0.5">
                       <div
-                        className="w-8 h-8 rounded-full flex items-center justify-center"
+                        className="w-7 h-7 rounded-full flex items-center justify-center"
                         style={{ backgroundColor: EPAPER_COLORS.black, opacity: 0.08 }}
                       >
                         <Circle className="w-2 h-2" style={{ color: EPAPER_COLORS.black, opacity: 0.3 }} />
                       </div>
-                      <span className="text-[8px] opacity-0">---</span>
+                      <span className="text-[7px] opacity-0">---</span>
                     </div>
                   ))
                 }
               </div>
+
+              {targetTemp && (
+                <div className="flex justify-center">
+                  <div
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full"
+                    style={{ backgroundColor: EPAPER_COLORS.yellow, border: `1.5px solid ${EPAPER_COLORS.black}` }}
+                  >
+                    <span className="text-[8px] font-bold uppercase tracking-wide" style={{ color: EPAPER_COLORS.black }}>
+                      Hold {targetTemp}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -5,71 +5,30 @@ import { Search, Grid3X3, List, ChevronLeft, ChevronRight, Loader2, Zap } from "
 import { useFoodSketches } from "@/hooks/use-food-sketches"
 import menuMapping from "@/lib/menu-mapping.json"
 
-// ---------------------------------------------------------------------------
-// Fuzzy matching — no external library needed for 28 items
-// Normalise both strings to lowercase words, score on word-level overlap.
-// "Eggs" → "Scrambled Eggs" scores 1.0 because every query word ("eggs")
-//   appears in the candidate word list.
-// ---------------------------------------------------------------------------
-function normalize(s: string): string[] {
-  return s
-    .toLowerCase()
-    .replace(/[^a-z0-9 ]/g, " ")
-    .split(/\s+/)
-    .filter(Boolean)
-}
-
-function fuzzyFindSketch(
-  dishName: string,
-  mapping: Record<string, string>,
-  sketchNames: string[]
-): string | null {
-  if (!dishName.trim()) return null
-
-  const queryWords = normalize(dishName)
-  if (!queryWords.length) return null
+function fuzzyMatch(query: string, mapping: Record<string, string>): string | null {
+  if (!query.trim()) return null
+  const normalize = (s: string) =>
+    s.toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter(Boolean)
+  const qw = normalize(query)
+  if (!qw.length) return null
 
   let bestKey: string | null = null
   let bestScore = 0
 
-  for (const key of Object.keys(mapping)) {
-    const candidateWords = normalize(key)
-
-    // Exact normalised match — short-circuit immediately
-    if (candidateWords.join(" ") === queryWords.join(" ")) {
-      bestKey = key
-      break
-    }
-
-    // Word-overlap score: what fraction of query words appear in the candidate?
-    const matches = queryWords.filter(qw =>
-      candidateWords.some(cw => cw.includes(qw) || qw.includes(cw))
-    )
-    const score = matches.length / Math.max(queryWords.length, candidateWords.length)
-
-    // Require at least 50 % overlap to avoid spurious matches
-    if (score > bestScore && score >= 0.5) {
-      bestScore = score
-      bestKey = key
-    }
+  for (const [dishName, file] of Object.entries(mapping)) {
+    const cw = normalize(dishName)
+    if (cw.join(" ") === qw.join(" ")) return file
+    const matches = qw.filter(w => cw.some(c => c.includes(w) || w.includes(c)))
+    const score = matches.length / Math.max(qw.length, cw.length)
+    if (score > bestScore && score >= 0.5) { bestScore = score; bestKey = dishName }
   }
-
-  if (!bestKey) return null
-
-  // Strip .svg extension so it aligns with manifest keys
-  const sketchKey = (mapping as Record<string, string>)[bestKey].replace(/\.svg$/i, "")
-
-  // Accept even if not yet in manifest — getSketchUrl will return null gracefully
-  return sketchNames.includes(sketchKey) ? sketchKey : sketchKey
+  return bestKey ? mapping[bestKey] : null
 }
 
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
 interface FoodSketchBrowserProps {
-  dishName?: string           // passed from parent; drives auto-selection
+  dishName?: string
   selectedSketch: string | null
-  onSketchSelect: (name: string | null) => void
+  onSketchSelect: (file: string | null) => void
 }
 
 export function FoodSketchBrowser({
@@ -77,72 +36,65 @@ export function FoodSketchBrowser({
   selectedSketch,
   onSketchSelect,
 }: FoodSketchBrowserProps) {
-  const { sketchNames, isLoading, error, getSketchUrl } = useFoodSketches()
+  const { getSketchSvg, galleryItems, isLoading, error } = useFoodSketches()
 
   const [searchQuery, setSearchQuery] = useState("")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [page, setPage] = useState(0)
   const itemsPerPage = 12
 
-  // Track the last sketch that was auto-selected so manual picks aren't overridden
   const autoSelectedRef = useRef<string | null>(null)
   const [autoMatchLabel, setAutoMatchLabel] = useState<string | null>(null)
 
-  // Auto-select when dishName changes
   useEffect(() => {
-    const match = fuzzyFindSketch(dishName, menuMapping as Record<string, string>, sketchNames)
-
-    if (match) {
-      // Only override if nothing is selected, or we previously auto-selected
-      if (!selectedSketch || selectedSketch === autoSelectedRef.current) {
-        autoSelectedRef.current = match
-        setAutoMatchLabel(match)
-        onSketchSelect(match)
-
-        // Scroll to the matched sketch's page in the grid
-        const idx = filteredNames.indexOf(match)
-        if (idx !== -1) setPage(Math.floor(idx / itemsPerPage))
+    if (!dishName.trim()) {
+      if (selectedSketch && selectedSketch === autoSelectedRef.current) {
+        autoSelectedRef.current = null
+        setAutoMatchLabel(null)
+        onSketchSelect(null)
       }
-    } else if (!dishName.trim() && selectedSketch === autoSelectedRef.current) {
-      // Dish name cleared — clear auto-selected sketch too
-      autoSelectedRef.current = null
-      setAutoMatchLabel(null)
-      onSketchSelect(null)
+      return
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dishName, sketchNames])
 
-  const filteredNames = useMemo(() => {
-    if (!searchQuery) return sketchNames
-    const q = searchQuery.toLowerCase()
-    return sketchNames.filter(name => name.toLowerCase().includes(q))
-  }, [sketchNames, searchQuery])
+    const rawMap = menuMapping as Record<string, string>
+    const file = rawMap[dishName] ?? fuzzyMatch(dishName, rawMap)
+    if (!file) return
 
-  const totalPages = Math.ceil(filteredNames.length / itemsPerPage)
-  const paginatedNames = filteredNames.slice(page * itemsPerPage, (page + 1) * itemsPerPage)
+    if (!selectedSketch || selectedSketch === autoSelectedRef.current) {
+      autoSelectedRef.current = file
+      setAutoMatchLabel(dishName)
+      onSketchSelect(file)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dishName])
 
-  // Manual selection — user takes control; stop auto-overriding
-  const handleManualSelect = (name: string | null) => {
-    autoSelectedRef.current = name   // treat manual pick as new auto baseline
+  const filteredItems = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    if (!q) return galleryItems
+    return galleryItems.filter(({ dishName: label }) => label.toLowerCase().includes(q))
+  }, [galleryItems, searchQuery])
+
+  const totalPages = Math.ceil(filteredItems.length / itemsPerPage)
+  const paginated = filteredItems.slice(page * itemsPerPage, (page + 1) * itemsPerPage)
+
+  const handleManualSelect = (file: string | null) => {
+    autoSelectedRef.current = file
     setAutoMatchLabel(null)
-    onSketchSelect(name)
+    onSketchSelect(file)
   }
 
-  // ── Loading ────────────────────────────────────────────────────────────────
   if (isLoading) {
     return (
       <div className="w-full">
         <label className="block text-sm font-semibold text-[#1C1C1C] mb-2">Food Sketch</label>
         <div className="flex flex-col items-center justify-center py-12 bg-[#FAFAFA] rounded-xl border border-[#E8E4DE]">
           <Loader2 className="w-8 h-8 text-[#CD7F32] animate-spin mb-3" />
-          <span className="text-sm font-medium text-[#6B6B6B]">Syncing Sketches...</span>
-          <span className="text-xs text-[#9B9B9B] mt-1">Loading from library</span>
+          <span className="text-sm font-medium text-[#6B6B6B]">Loading sketches...</span>
         </div>
       </div>
     )
   }
 
-  // ── Error ──────────────────────────────────────────────────────────────────
   if (error) {
     return (
       <div className="w-full">
@@ -155,13 +107,11 @@ export function FoodSketchBrowser({
     )
   }
 
-  // ── Main ───────────────────────────────────────────────────────────────────
   return (
     <div className="w-full">
       <label className="block text-sm font-semibold text-[#1C1C1C] mb-2">Food Sketch</label>
 
-      {/* Auto-match banner */}
-      {autoMatchLabel && selectedSketch === autoMatchLabel && (
+      {autoMatchLabel && selectedSketch === autoSelectedRef.current && (
         <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg bg-[#FFD700]/15 border border-[#CD7F32]/40">
           <Zap className="w-3.5 h-3.5 text-[#CD7F32] shrink-0" />
           <span className="text-xs font-medium text-[#1C1C1C]">
@@ -177,7 +127,6 @@ export function FoodSketchBrowser({
         </div>
       )}
 
-      {/* Search bar */}
       <div className="relative mb-3">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9B9B9B]" />
         <input
@@ -189,10 +138,9 @@ export function FoodSketchBrowser({
         />
       </div>
 
-      {/* View toggle & count */}
       <div className="flex items-center justify-between mb-3">
         <span className="text-xs text-[#6B6B6B]">
-          {filteredNames.length} sketch{filteredNames.length !== 1 ? "es" : ""} found
+          {filteredItems.length} sketch{filteredItems.length !== 1 ? "es" : ""}
         </span>
         <div className="flex items-center gap-1">
           <button
@@ -210,68 +158,66 @@ export function FoodSketchBrowser({
         </div>
       </div>
 
-      {/* Gallery */}
-      {paginatedNames.length === 0 ? (
+      {paginated.length === 0 ? (
         <div className="py-8 text-center text-sm text-[#9B9B9B]">No sketches found</div>
       ) : viewMode === "grid" ? (
         <div className="grid grid-cols-4 gap-2">
-          {paginatedNames.map(name => {
-            const url = getSketchUrl(name)
-            const isSelected = selectedSketch === name
+          {paginated.map(({ dishName: label, file }) => {
+            const svg = getSketchSvg(file)
+            const isSelected = selectedSketch === file
             return (
               <button
-                key={name}
+                key={label}
                 type="button"
-                onClick={() => handleManualSelect(isSelected ? null : name)}
+                onClick={() => handleManualSelect(isSelected ? null : file)}
                 className="flex flex-col items-center gap-1"
               >
-                <div
-                  className={`w-[69px] h-[69px] rounded flex items-center justify-center transition-all flex-shrink-0 ${
-                    isSelected
-                      ? "bg-[#FFD700] border-2 border-[#1C1C1C]"
-                      : "bg-[#FAFAFA] border border-[#E8E4DE] hover:border-[#CD7F32]"
-                  }`}
-                >
-                  {url
-                    ? <img src={url} alt={name} className="w-full h-full object-contain" loading="lazy" />
+                <div className={`w-[69px] h-[69px] rounded flex items-center justify-center transition-all flex-shrink-0 overflow-hidden ${
+                  isSelected
+                    ? "bg-[#FFD700] border-2 border-[#1C1C1C]"
+                    : "bg-[#FAFAFA] border border-[#E8E4DE] hover:border-[#CD7F32]"
+                }`}>
+                  {svg
+                    ? <div className="w-full h-full" dangerouslySetInnerHTML={{ __html: svg }} />
                     : <span className="text-[8px] text-[#9B9B9B]">?</span>
                   }
                 </div>
-                <span className="text-[10px] text-[#6B6B6B] text-center line-clamp-1 w-full">{name}</span>
+                <span className="text-[10px] text-[#6B6B6B] text-center line-clamp-1 w-full">
+                  {label}
+                </span>
               </button>
             )
           })}
         </div>
       ) : (
         <div className="space-y-2">
-          {paginatedNames.map(name => {
-            const url = getSketchUrl(name)
-            const isSelected = selectedSketch === name
+          {paginated.map(({ dishName: label, file }) => {
+            const svg = getSketchSvg(file)
+            const isSelected = selectedSketch === file
             return (
               <button
-                key={name}
+                key={label}
                 type="button"
-                onClick={() => handleManualSelect(isSelected ? null : name)}
+                onClick={() => handleManualSelect(isSelected ? null : file)}
                 className={`w-full flex items-center gap-3 p-2 rounded-lg transition-colors ${
                   isSelected
                     ? "bg-[#FFD700]/20 border border-[#CD7F32]"
                     : "bg-white border border-[#E8E4DE] hover:border-[#CD7F32]"
                 }`}
               >
-                <div className="w-10 h-10 flex items-center justify-center flex-shrink-0">
-                  {url
-                    ? <img src={url} alt={name} className="w-full h-full object-contain" loading="lazy" />
+                <div className="w-10 h-10 flex-shrink-0 overflow-hidden">
+                  {svg
+                    ? <div className="w-full h-full" dangerouslySetInnerHTML={{ __html: svg }} />
                     : <span className="text-[10px] text-[#9B9B9B]">?</span>
                   }
                 </div>
-                <span className="flex-1 text-left text-sm font-medium text-[#1C1C1C]">{name}</span>
+                <span className="flex-1 text-left text-sm font-medium text-[#1C1C1C]">{label}</span>
               </button>
             )
           })}
         </div>
       )}
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-3 mt-4">
           <button
@@ -294,11 +240,12 @@ export function FoodSketchBrowser({
         </div>
       )}
 
-      {/* Selected indicator (manual picks, no auto-match label) */}
-      {selectedSketch && selectedSketch !== autoMatchLabel && (
+      {selectedSketch && selectedSketch !== autoSelectedRef.current && (
         <div className="mt-3 p-2 rounded-lg bg-[#FFD700]/10 border border-[#CD7F32]">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-[#1C1C1C]">Selected: {selectedSketch}</span>
+            <span className="text-xs font-medium text-[#1C1C1C]">
+              Selected: {galleryItems.find(i => i.file === selectedSketch)?.dishName ?? selectedSketch}
+            </span>
             <button
               type="button"
               onClick={() => handleManualSelect(null)}

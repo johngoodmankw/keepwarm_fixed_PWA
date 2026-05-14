@@ -1,71 +1,66 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
+import menuMapping from "@/lib/menu-mapping.json"
 
-const MANIFEST_URL =
-  "https://cdn.jsdelivr.net/gh/johngoodmankw/keep-warm/food-sketches-manifest.json"
-const CACHE_KEY = "kw-sketch-manifest-v1"
+// SVG text cached after fetch — files are already processed (no XML declaration, responsive attrs injected)
+const SVG_CACHE: Record<string, string | null> = {}
 
-export type SketchManifest = Record<string, string>
+async function fetchSvg(filename: string): Promise<void> {
+  if (filename in SVG_CACHE) return
+  try {
+    const res = await fetch(`/sketches/${filename}`)
+    if (!res.ok) throw new Error(`${res.status}`)
+    SVG_CACHE[filename] = await res.text()
+  } catch {
+    SVG_CACHE[filename] = null
+  }
+}
 
 export function useFoodSketches() {
-  const [manifest, setManifest] = useState<SketchManifest>(() => {
-    // Hydrate immediately from localStorage so the UI is never blank on reload
-    if (typeof window === "undefined") return {}
-    try {
-      const cached = localStorage.getItem(CACHE_KEY)
-      return cached ? JSON.parse(cached) : {}
-    } catch {
-      return {}
-    }
-  })
-  const [isLoading, setIsLoading] = useState(true)
+  const mapping = menuMapping as Record<string, string>
+
+  const allFiles = useMemo(
+    () => [...new Set(Object.values(mapping))],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  )
+
+  const [svgMap, setSvgMap] = useState<Record<string, string | null>>({ ...SVG_CACHE })
+  const [isLoading, setIsLoading] = useState(allFiles.some(f => !(f in SVG_CACHE)))
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    const missing = allFiles.filter(f => !(f in SVG_CACHE))
+    if (missing.length === 0) return
+
     let cancelled = false
-
-    async function fetchManifest() {
-      setIsLoading(true)
-      setError(null)
-
-      try {
-        const res = await fetch(MANIFEST_URL)
-        if (!res.ok) throw new Error(`Failed to fetch manifest: ${res.status}`)
-        const data: SketchManifest = await res.json()
+    Promise.all(missing.map(fetchSvg))
+      .then(() => {
         if (!cancelled) {
-          setManifest(data)
-          try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)) } catch {}
+          setSvgMap({ ...SVG_CACHE })
+          setIsLoading(false)
         }
-      } catch (err) {
+      })
+      .catch(err => {
         if (!cancelled) {
-          const msg = err instanceof Error ? err.message : "Failed to fetch sketch manifest"
-          // If we already have a cached manifest, don't show an error — just use the cache
-          setManifest((prev) => {
-            if (Object.keys(prev).length > 0) return prev
-            setError(msg)
-            return prev
-          })
+          setError(err instanceof Error ? err.message : "Failed to load sketches")
+          setIsLoading(false)
         }
-      } finally {
-        if (!cancelled) setIsLoading(false)
-      }
-    }
-
-    fetchManifest()
+      })
     return () => { cancelled = true }
-  }, [])
+  }, [allFiles])
 
-  // Sort once when manifest changes — not on every render
-  const sketchNames = useMemo(() => Object.keys(manifest).sort(), [manifest])
+  const getSketchSvg = (filename: string | null): string | null => {
+    if (!filename) return null
+    return svgMap[filename] ?? null
+  }
 
-  const getSketchUrl = useMemo(
-    () => (nameOrFilename: string): string | null => {
-      const key = nameOrFilename.replace(/\.svg$/i, "")
-      return manifest[key] ?? null
-    },
-    [manifest]
+  const galleryItems = useMemo(
+    () => Object.entries(mapping).map(([dishName, file]) => ({ dishName, file })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
   )
 
-  return { manifest, sketchNames, isLoading, error, getSketchUrl }
+  return { getSketchSvg, galleryItems, isLoading, error }
 }

@@ -1,8 +1,7 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { ChevronLeft, QrCode, Battery, Wifi } from "lucide-react"
-import { toast } from "sonner"
 import { PreviewCard } from "@/components/keep-warm/preview-card"
 import { DishInput } from "@/components/keep-warm/dish-input"
 import { IconSelector } from "@/components/keep-warm/icon-selector"
@@ -11,12 +10,11 @@ import { UpdateOverlay } from "@/components/keep-warm/update-overlay"
 import { FoodSketchBrowser } from "@/components/keep-warm/food-sketch-browser"
 import { ZoneAUploader } from "@/components/keep-warm/zone-a-uploader"
 import { useFoodSketches } from "@/hooks/use-food-sketches"
+import { toast } from "sonner"
 import type { MenuItem } from "@/lib/keep-warm/menu-library"
+import menuMapping from "@/lib/menu-mapping.json"
 
 export default function KeepWarmPage() {
-  // Sketch data — single source, passed down to FoodSketchBrowser as props
-  const { sketchNames, isLoading: sketchesLoading, error: sketchesError, getSketchUrl } = useFoodSketches()
-
   // Dish Selection State
   const [dishName, setDishName] = useState("")
   const [description, setDescription] = useState("")
@@ -24,10 +22,12 @@ export default function KeepWarmPage() {
 
   // Food Sketch State
   const [selectedSketch, setSelectedSketch] = useState<string | null>(null)
+  const { getSketchSvg } = useFoodSketches()
 
   // Temperature Pairing State
   const [tempEnabled, setTempEnabled] = useState(false)
   const [temperature, setTemperature] = useState(145)
+  const [targetTemp, setTargetTemp] = useState<string | null>(null)
 
   // Zone A Asset State
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
@@ -42,37 +42,34 @@ export default function KeepWarmPage() {
   const [loadingProgress, setLoadingProgress] = useState(0)
   const [remainingSeconds, setRemainingSeconds] = useState(3)
 
-  // Handle menu item selection — auto-populate associations
   const handleMenuItemSelect = (item: MenuItem | null) => {
     if (item) {
       setDescription(item.description)
       setSelectedAllergens(item.allergens)
       setSelectedDietary(item.dietary)
-      // Auto-select sketch based on category (lowercase to match menu-library)
-      if (item.category === "poultry") {
-        setSelectedSketch("chicken-parm")
-      } else if (item.category === "beef") {
-        setSelectedSketch("ribeye-steak")
-      }
+      setTargetTemp(item.targetTemp || null)
+      const file = (menuMapping as Record<string, string>)[item.name] ?? null
+      setSelectedSketch(file)
     } else {
       setDescription("")
       setSelectedAllergens([])
       setSelectedDietary([])
       setSelectedSketch(null)
+      setTargetTemp(null)
     }
   }
 
   const handleSaveToLibrary = () => {
-    if (!dishName.trim()) return
     toast.success(`"${dishName}" saved to library!`)
   }
 
-  // Progress bar animation — 3 second hardware refresh simulation
-  const handleUpdate = useCallback(() => {
-    if (buttonLoading || isUpdating) return
-    setButtonLoading(true)
-    setLoadingProgress(0)
-    setRemainingSeconds(3)
+  // Progress bar animation - 3 second hardware refresh simulation
+  useEffect(() => {
+    if (!buttonLoading) {
+      setLoadingProgress(0)
+      setRemainingSeconds(3)
+      return
+    }
 
     const totalDuration = 3000
     const interval = 100
@@ -80,7 +77,8 @@ export default function KeepWarmPage() {
 
     const timer = setInterval(() => {
       elapsed += interval
-      setLoadingProgress(Math.min((elapsed / totalDuration) * 100, 100))
+      const progress = Math.min((elapsed / totalDuration) * 100, 100)
+      setLoadingProgress(progress)
       setRemainingSeconds(Math.max(0, Math.ceil((totalDuration - elapsed) / 1000)))
 
       if (elapsed >= totalDuration) {
@@ -89,7 +87,13 @@ export default function KeepWarmPage() {
         setIsUpdating(true)
       }
     }, interval)
-  }, [buttonLoading, isUpdating])
+
+    return () => clearInterval(timer)
+  }, [buttonLoading])
+
+  const handleUpdate = () => {
+    setButtonLoading(true)
+  }
 
   const handleUpdateComplete = useCallback(() => {
     setIsUpdating(false)
@@ -97,13 +101,14 @@ export default function KeepWarmPage() {
 
   return (
     <div className="min-h-screen bg-[#F5F2ED]">
+      {/* Update Overlay - Success confirmation */}
       <UpdateOverlay
         isVisible={isUpdating}
         onComplete={handleUpdateComplete}
         duration={3000}
       />
 
-      {/* Header */}
+      {/* Header with Unit Status */}
       <header className="sticky top-0 z-50 bg-[#F5F2ED]/90 backdrop-blur-md border-b border-[#E8E4DE]">
         <div className="flex items-center gap-3 px-4 h-14">
           <button className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-[#E8E4DE] transition-colors">
@@ -136,6 +141,7 @@ export default function KeepWarmPage() {
       <main className="px-4 pt-6 pb-36">
         <div className="max-w-lg mx-auto space-y-8">
 
+          {/* E-Paper Preview Card */}
           <section>
             <PreviewCard
               dishName={dishName}
@@ -143,11 +149,12 @@ export default function KeepWarmPage() {
               allergens={selectedAllergens}
               dietary={selectedDietary}
               logoUrl={logoUrl}
-              selectedSketch={selectedSketch}
-              sketchUrl={selectedSketch ? getSketchUrl(selectedSketch) : null}
+              sketchSvg={getSketchSvg(selectedSketch)}
+              targetTemp={tempEnabled ? `${temperature}°F` : targetTemp}
             />
           </section>
 
+          {/* Dish Name */}
           <section className="space-y-4">
             <DishInput
               value={dishName}
@@ -159,6 +166,7 @@ export default function KeepWarmPage() {
             />
           </section>
 
+          {/* Description Field */}
           <section className="space-y-4">
             <h3 className="text-sm font-semibold text-[#1C1C1C]">Description</h3>
             <textarea
@@ -170,6 +178,7 @@ export default function KeepWarmPage() {
             />
           </section>
 
+          {/* Allergens & Dietary Icon Selection */}
           <section className="space-y-4">
             <IconSelector
               selectedAllergens={selectedAllergens}
@@ -179,18 +188,16 @@ export default function KeepWarmPage() {
             />
           </section>
 
-          {/* FoodSketchBrowser receives sketch data as props — no second fetch */}
+          {/* Food Sketch Browser */}
           <section className="space-y-4">
             <FoodSketchBrowser
+              dishName={dishName}
               selectedSketch={selectedSketch}
               onSketchSelect={setSelectedSketch}
-              sketchNames={sketchNames}
-              isLoading={sketchesLoading}
-              error={sketchesError}
-              getSketchUrl={getSketchUrl}
             />
           </section>
 
+          {/* Temperature Pairing */}
           <section className="space-y-4">
             <TemperatureCard
               enabled={tempEnabled}
@@ -201,6 +208,7 @@ export default function KeepWarmPage() {
             />
           </section>
 
+          {/* Zone A Asset Manager (Branding) */}
           <section className="space-y-4">
             <ZoneAUploader
               logoUrl={logoUrl}
